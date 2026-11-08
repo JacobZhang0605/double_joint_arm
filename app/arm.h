@@ -17,6 +17,7 @@ class Arm {
   };
 
   struct Reference {
+    Reference():q{0.0,0.0},dq{0.0,0.0},ddq {0.0,0.0}{}
     float q[2]{};    // rad
     float dq[2]{};   // rad/s，速度前馈
     float ddq[2]{};  // rad/s²，加速度前馈

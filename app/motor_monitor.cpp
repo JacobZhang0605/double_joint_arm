@@ -43,6 +43,7 @@
 // Motor FRICR(Motor::M3508, 1, Motor::SPEED,  // type, ratio, method
 //             PID(), PID(fric_spid));         // ppid, spid
 
+
 // Stir motor
 // Motor STIR(Motor::M2006, 36, Motor::POSITION_SPEED,  // type, ratio, method
 //            PID(20, 0.1, 10, 10, 2500),               // ppid
@@ -52,16 +53,16 @@
 // Other motors
 // 在线 KF Q 为 deg²、(deg/s)²，R 为 deg²
 const Motor::KFParam_t joint_kf_param(5.f, 6e5f, 1.f);
-const PID J0_spid(30,0.01,0,0,16384,1);
-const PID J0_ppid(75,0,400,0,1440,1);
-// J0 齿轮传动反向，用负传动比统一关节正方向；同时换算反馈和输出
-Motor J0(Motor::M3508, -1, Motor::POSITION_SPEED,  // type, ratio, method
+const PID J0_spid(15,0,0,0,16384,1);
+const PID J0_ppid(40,0,100,0,1440,1);
+// J0 齿轮传动反向且减速比 1.2，用负传动比统一关节正方向并换算反馈和输出
+Motor J0(Motor::M3508, -1.2f, Motor::POSITION_SPEED,  // type, ratio, method
          J0_ppid,           // ppid
          J0_spid,           // spid
          true, joint_kf_param);  // 启用在线 KF
 
-const PID J1_spid(12,0,50,0,16384,1);
-const PID J1_ppid( 50,0,100,0,1440,1);
+const PID J1_spid(15,0,40,0,16384,1);  // kp 6->35 对齐 J0，减滞后/过冲（起步值，注意振荡）
+const PID J1_ppid(30,0,100,0,1440,1);
 Motor J1(Motor::M3508, 1, Motor::POSITION_SPEED,
          J1_ppid,
          J1_spid,
@@ -70,8 +71,8 @@ Motor J1(Motor::M3508, 1, Motor::POSITION_SPEED,
 // DJI Motor id config, M3508/M2006: 1~8, GM6020: 5~11
 // DJI电机ID配置，M3508，M2006可配置范围为1~8，GM6020可配置范围为5~11
 Motor* can1_dji_motor[11] = {
-    &J1,   // id:1
-    &J0,   // id:2
+    &J0,   // id:1
+    &J1,   // id:2
     nullptr,  // id:3
     nullptr,  // id:4
     nullptr,    // id:5

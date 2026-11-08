@@ -11,6 +11,7 @@
 #ifndef CONTROL_H
 #define CONTROL_H
 
+
 // 控制初始化
 void controlInit(void);
 // 控制主循环
