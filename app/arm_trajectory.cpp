@@ -14,7 +14,7 @@ CartesianReference ArmTrajectory::sample(float elapsed_s) {
 
     if (!running_) return result;
 
-    // 双调用插值
+    // 双调用插值，二维
     interpolate(start_.x, end_.x, elapsed_s, duration_s_, result.x, result.dx, result.ddx);
     interpolate(start_.y, end_.y, elapsed_s, duration_s_, result.y, result.dy, result.ddy);
 
@@ -51,15 +51,15 @@ void ArmTrajectory::interpolate(float start, float end, float elapsed_s,
 
   const float p2 = progress * progress;
   const float p3 = p2 * progress;
-  const float reverse = 1.f - progress;
+  const float reverse = 1.0f - progress;
 
-  const float scalar_smooth = p3 * (10.f + progress * (6.f * progress - 15.f));
+  const float scalar_smooth = p3 * (10.0f + progress * (6.0f * progress - 15.0f));
   position = start + scalar_smooth * delta;
 
-  const float temporal_factor_velocity = (30.f * p2 * reverse * reverse) / duration_s;
+  const float temporal_factor_velocity = (30.0f * p2 * reverse * reverse) / duration_s;
   velocity = temporal_factor_velocity * delta;
 
-  const float temporal_factor_acceleration = (60.f * progress * reverse * (1.f - 2.f * progress)) / (duration_s * duration_s);
+  const float temporal_factor_acceleration = (60.0f * progress * reverse * (1.0f - 2.0f * progress)) / (duration_s * duration_s);
   acceleration = temporal_factor_acceleration * delta;
 
 }

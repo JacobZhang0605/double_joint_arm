@@ -32,7 +32,7 @@ bool Arm::withinLimits(const float q[2]) const { //形参没了？？？加了�
 bool Arm::calibrate(float q0_rad, float q1_rad) {
   float q[2] = {q0_rad, q1_rad};
   if (mode_ != Mode::Disabled || withinLimits(q) == false) return false;
-  // 标定时禁止 CAN 回调改写反馈 <- 这个非常重要
+  // 标定时不要让 CAN 回调改写反馈
   taskENTER_CRITICAL();
   if (feedbackReady() == false) {
     taskEXIT_CRITICAL();
@@ -44,10 +44,8 @@ bool Arm::calibrate(float q0_rad, float q1_rad) {
   taskEXIT_CRITICAL();
   trajAbort();
   updateFeedback();
-
   reference_ = Reference();
-  reference_.q[0] = state_.q[0];
-  reference_.q[1] = state_.q[1];
+  reference_.q[0] = state_.q[0]; reference_.q[1] = state_.q[1];
   return true;
 }
 
@@ -71,7 +69,6 @@ void Arm::disable() {
 }
 
 bool Arm::setReference(const Reference& reference) {
-  if (trajRunning() == true) return false;
   return applyReference(reference);
 }
 
@@ -85,15 +82,15 @@ bool Arm::applyReference(const Reference& reference) {
 
 bool Arm::addJointReference(float speed0, float speed1, float dt_s) {
   if (mode_ != Mode::Joint || trajRunning()) return false;
-  const float speed[2] = {speed0, speed1};
+  float speed[2];
+  speed[0] = speed0; speed[1] = speed1;
   Reference next = reference_;
   for (int i = 0; i < 2; ++i) {
     const float next_q = next.q[i] + speed[i] * dt_s;
     next.q[i] = (next_q >= limits_.q_max[i]) ? limits_.q_max[i] :
                 (next_q <= limits_.q_min[i]) ? limits_.q_min[i] : next_q;
     next.dq[i] = speed[i];
-    if ((speed[i] > 0.0f && next_q >= limits_.q_max[i]) ||
-        (speed[i] < 0.0f && next_q <= limits_.q_min[i])) {
+    if ((speed[i] > 0.0f && next_q >= limits_.q_max[i]) || (speed[i] < 0.0f && next_q <= limits_.q_min[i])) {
       next.dq[i] = 0.0f;
     }
     next.ddq[i] = 0.0f;
@@ -123,7 +120,7 @@ bool Arm::trajStart(float x_m, float y_m, float duration_s) {
 // 从实际反馈开始的关节空间同步点到点，目标为累计角度 rad
 bool Arm::trajStartJoint(float q0_rad, float q1_rad, float duration_s) {
   const float end[2] = {q0_rad, q1_rad};
-  if (!trajectoryReady() || !withinLimits(end) || duration_s <= 0.0f) return false;
+  if (!trajectoryReady() || !withinLimits(end)) return false;
   updateFeedback();
   if (!withinLimits(state_.q)) return false;
   reference_ = Reference();
@@ -151,8 +148,8 @@ void Arm::trajAbort() {
 
 void Arm::trajectoryPlanner() {
   if (!trajRunning()) return;
-  const float now_tick = HAL_GetTick();
-  const float duration_s = (now_tick - trajectory_start_tick_) / 1000;
+  float now_tick = HAL_GetTick();
+  float duration_s = (now_tick - trajectory_start_tick_) / 1000;
   if (trajectory_type_ == TrajectoryType::Joint) {
     Reference new_reference;
     for (int i = 0; i < 2; ++i) {

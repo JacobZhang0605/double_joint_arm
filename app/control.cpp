@@ -42,20 +42,17 @@ enum ArmState_e {
 enum Style {
   RECTANGULAR,
   TRIANGLE,
-  STYLE_COUNT  // 样式总数，供 MID 切换循环用
+  STYLE_COUNT  // 左中切换
 };
 
 const float path_rectangular[4][2] = {{0.1f,0.1f},{-0.1f,0.1f},{-0.1f,-0.1f},{0.1f,-0.1f}};
 //                                    A          B            C             D
 
 // 等边三角形，外接圆半径 0.16：顶点距原点 0.16（最大可达 0.164），
-// 边距原点 0.08（最小可达 0.076）。三角形边比矩形更贴近圆心，
 // 必须放大到 0.16，否则直线边会切入不可达内圈导致 trajStart 失败。
 const float path_triangle[3][2] = {{0.0f,0.16f},{-0.1386f,-0.08f},{0.1386f,-0.08f}};
 //                                  A顶          B左下             C右下
 
-
-// ARM_AUTO 状态机持久状态：0待工，1预备到首点，2..n+1 依次走点（n=路径点数）
 int arm_auto_stage = 0;
 // 当前路径选择，左杆MID切换，需要记录上一次的值，否则一直在变
 Style arm_auto_style = RECTANGULAR;
@@ -98,7 +95,7 @@ enum RobotPowerState_e {
 // 初始化标志
 bool robot_init_flag = false;
 
-
+// 手操，左上右上
 static float rcAxisToJointSpeed(int16_t axis) {
   constexpr int16_t deadband = 20;   
   constexpr int16_t full = 660;      
@@ -202,8 +199,7 @@ void robotControl(void) {
       break;
 
     case ARM_ENABLE:
-      arm_auto_prev_mid = false;  // 离开 AUTO，边沿标志清零
-      // 左杆：UP=手动，MID/DOWN=自动(走 arm_auto_style 路径)
+      arm_auto_prev_mid = false;
       if (rc.switch_.r == decltype(rc)::UP) {
         if (rc.switch_.l == decltype(rc)::UP && arm.enable()) {
           arm_state = ARM_MANUAL;
@@ -219,7 +215,7 @@ void robotControl(void) {
       if (rc.switch_.l != decltype(rc)::UP) {
         arm_state = ARM_ENABLE;  //
       } else {
-        // 右摇杆上下 → J0 速度，左摇杆上下 → J1 速度
+        // 右摇杆上下  J0 速度，左摇杆上下  J1 速度
         arm.addJointReference(rcAxisToJointSpeed(rc.channel_.r_row),
                               rcAxisToJointSpeed(rc.channel_.l_row), 0.001f);
       }
@@ -230,7 +226,7 @@ void robotControl(void) {
         arm_state = ARM_ENABLE;  // 左杆 UP，退回使能
         break;
       }
-      // 左杆 MID 上升沿 → 切换到下一条路径
+      // 左杆 MID 切换到下一条路径
       const bool l_mid = (rc.switch_.l == decltype(rc)::MID);
       if (l_mid && !arm_auto_prev_mid) {
         arm_auto_style = static_cast<Style>((arm_auto_style + 1) % STYLE_COUNT);
